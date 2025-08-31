@@ -3,6 +3,8 @@ from typing import Self
 
 from pydantic import BaseModel
 
+from tiny_tls_py.models.handshake import Handshake
+
 
 class ContentType(IntEnum):
     invalid = 0
@@ -23,7 +25,7 @@ class TlsRecord(BaseModel):
     content_type: ContentType
     legacy_record_version: ProtocolVersion
     length: int
-    fragment: bytes
+    fragment: bytes | Handshake
 
     @classmethod
     def from_bytes(cls, data: bytes) -> Self:
@@ -34,7 +36,7 @@ class TlsRecord(BaseModel):
         if version not in ProtocolVersion:
             raise ValueError(f"Invalid protocol version: {version}")
         length = int.from_bytes(data[3:5], "big")
-        fragment = data[5:]
+        fragment = Handshake.from_bytes(data[5:])
         return cls(
             content_type=content_type,
             legacy_record_version=version,

@@ -28,7 +28,7 @@ class Handshake(BaseModel):
     @classmethod
     def from_bytes(cls, data: bytes) -> Self:
         # msgType(1バイト): ハンドシェイクメッセージの種類(ClientHello, ServerHelloとか)
-        msg_type = HandshakeType(int.from_bytes(data[:1], "big"))
+        msg_type = HandshakeType(int.from_bytes(data[0:1], "big"))
         if msg_type not in HandshakeType:
             raise ValueError(f"Invalid handshake type: {msg_type}")
         # length(3バイト): ハンドシェイクメッセージの長さ

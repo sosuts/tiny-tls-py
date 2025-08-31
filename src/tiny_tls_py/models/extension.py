@@ -10,6 +10,15 @@ class ExtensionType(IntEnum):
     SupportedVersions = 0x002B
     KeyShare = 0x0033
 
+    @classmethod
+    def _missing_(cls, value):
+        # 未定義値でもそのままインスタンス化
+        # TypeScript の数値 enum のように「ただの数値」として保持
+        obj = int.__new__(cls, value)
+        obj._name_ = None  # 名前は存在しない
+        obj._value_ = value
+        return obj
+
 
 class Extension(BaseModel):
     extension_type: ExtensionType
@@ -49,20 +58,18 @@ class KeyShare(BaseModel):
 
     @classmethod
     def from_bytes(cls, data: bytes) -> Self:
+        length = int.from_bytes(data[0:2], "big")
         entries: list[KeyShareEntry] = []
         offset: int = 2
 
         # 最初の2バイトが長さ
-        length = int.from_bytes(data[:offset], "big")
         # length以外はデータ
         while offset < len(data[offset:]):
             # 本来は2バイトでx25519, secp256r1などのグループを識別するが、
             # tiny-tls-pyではed25519のみをサポート
             group = data[offset : offset + 2]
             entry_length = int.from_bytes(data[offset + 2 : offset + 4], "big")
-            entry = KeyShareEntry.from_bytes(
-                data[offset + 4 : offset + 4 + entry_length]
-            )
+            entry = KeyShareEntry.from_bytes(data[offset : offset + 4 + entry_length])
             entries.append(entry)
             offset += 4 + entry_length
         return cls(length=length, entries=entries)

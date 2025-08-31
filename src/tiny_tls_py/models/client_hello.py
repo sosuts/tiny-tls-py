@@ -1,3 +1,5 @@
+from enum import Enum, IntEnum
+
 from pydantic import BaseModel
 
 from tiny_tls_py.models.extension import (
@@ -6,7 +8,10 @@ from tiny_tls_py.models.extension import (
     KeyShare,
     SupportedVersion,
 )
-from tiny_tls_py.models.tls_record import ProtocolVersion
+
+
+class ProtocolVersion(IntEnum):
+    TLS_1_2 = 0x0303
 
 
 class ClientHello(BaseModel):
@@ -21,11 +26,12 @@ class ClientHello(BaseModel):
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "ClientHello":
-        if data[:2] not in ProtocolVersion:
+        if int.from_bytes(data[:2], "big") not in ProtocolVersion:
             raise ValueError(f"Unsupported protocol version: {data[:2]}")
-        protocol_version = ProtocolVersion(data[:2])
+        protocol_version = ProtocolVersion(int.from_bytes(data[:2]))
+
         random = data[2:34]
-        session_id_length = int.from_bytes(data[34], "big")
+        session_id_length = data[34]
         session_id = data[35 : 35 + session_id_length]
         cipher_suites_length_start_index = 35 + session_id_length
         cipher_suites_length = int.from_bytes(
