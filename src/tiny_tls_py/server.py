@@ -3,7 +3,8 @@ import socketserver
 from rich.console import Console
 from rich.pretty import Pretty
 
-from tiny_tls_py.models.tls_record import TlsRecord
+from tiny_tls_py.models.tls_handshake_processor import TlsHandshakeProcessor
+from tiny_tls_py.models.tls_record import ContentType, TlsRecord
 
 
 class ServerConfig:
@@ -43,6 +44,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 "受信したTLSレコード:",
                 Pretty(tls_records, expand_all=True, indent_size=2, indent_guides=True),
             )
+            for tls_record in tls_records:
+                if tls_record.content_type == ContentType.handshake:
+                    TlsHandshakeProcessor.process(tls_record, self.request)
 
 
 if __name__ == "__main__":

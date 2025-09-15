@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import Self, Union
+from typing import Final, Self, Union, final
 
 from pydantic import BaseModel
 
@@ -13,7 +13,6 @@ class ExtensionType(IntEnum):
     @classmethod
     def _missing_(cls, value):
         # 未定義値でもそのままインスタンス化
-        # TypeScript の数値 enum のように「ただの数値」として保持
         obj = int.__new__(cls, value)
         obj._name_ = None  # 名前は存在しない
         obj._value_ = value
@@ -73,6 +72,13 @@ class KeyShare(BaseModel):
             entries.append(entry)
             offset += 4 + entry_length
         return cls(length=length, entries=entries)
+
+    def x2559Key(self) -> bytes:
+        x25519_group: Final[bytes] = bytes.fromhex("00 1d")
+        # 要素がないときはStopIterationがでる
+        return next(
+            filter(lambda x: x.group == x25519_group, self.entries)
+        ).key_exchange
 
 
 class KeyShareEntry(BaseModel):
