@@ -39,3 +39,13 @@ class Handshake(BaseModel):
         if msg_type == HandshakeType.ClientHello:
             parsed_body = ClientHello.from_bytes(body)
         return cls(msg_type=msg_type, length=length, body=parsed_body)
+
+    def bytes(self) -> bytes:
+        # fmt: off
+        header_buffer = (
+            self.msg_type.to_bytes(1, "big")
+            + self.length.to_bytes(3, "big")
+        )
+        if isinstance(self.body, bytes):
+            return header_buffer + self.body
+        return header_buffer + self.body.bytes()

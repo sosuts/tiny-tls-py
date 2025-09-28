@@ -43,3 +43,13 @@ class TlsRecord(BaseModel):
             length=length,
             fragment=fragment,
         )
+
+    def bytes(self) -> bytes:
+        header_buffer = (
+            self.content_type.to_bytes(1, "big")
+            + self.legacy_record_version.to_bytes(2, "big")
+            + self.length.to_bytes(2, "big")
+        )
+        if isinstance(self.fragment, bytes):
+            return header_buffer + self.fragment
+        return header_buffer + self.fragment.bytes()

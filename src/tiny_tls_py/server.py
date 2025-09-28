@@ -20,9 +20,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
             try:
                 data = self.request.recv(ServerConfig.BUFFER_SIZE)
             except Exception as e:
-                print(f"エラー: {e}")
+                print(f"ソケットエラー: {e}")
+                handshakeProcessor = TlsHandshakeProcessor()
             if not data:
                 print("クライアントが切断しました。")
+                handshakeProcessor = TlsHandshakeProcessor()
                 break
             print(f"クライアントからのメッセージ: {data.hex()}")
             tls_records: list[TlsRecord] = []
@@ -39,14 +41,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 tls_records.append(tls_record)
                 offset = record_end
 
-            console = Console()
-            console.print(
-                "受信したTLSレコード:",
-                Pretty(tls_records, expand_all=True, indent_size=2, indent_guides=True),
-            )
             for tls_record in tls_records:
                 if tls_record.content_type == ContentType.handshake:
                     TlsHandshakeProcessor.process(tls_record, self.request)
+            console = Console()
+            console.print(tls_records)
 
 
 if __name__ == "__main__":

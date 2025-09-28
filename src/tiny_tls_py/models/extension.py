@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import IntEnum
 from typing import Final, Self, Union, final
 
@@ -42,6 +43,16 @@ class Extension(BaseModel):
             case _:
                 raise ValueError(f"Invalid extension type: {extension_type.name}")
 
+    def bytes(self) -> bytes:
+        extension_type_buffer = b"\x00" + self.extension_type.to_bytes(1, "big")
+        if isinstance(self.data, bytes):
+            data_buffer = self.data
+        elif isinstance(self.data, SupportedVersion) or isinstance(self.data, KeyShare):
+            data_buffer = self.data.bytes()
+        else:
+            raise TypeError("Unsupported data type in Extension")
+        return extension_type_buffer + len(data_buffer).to_bytes(2, "big") + data_buffer
+
 
 class SupportedVersion(BaseModel):
     version: bytes
@@ -49,6 +60,9 @@ class SupportedVersion(BaseModel):
     @classmethod
     def from_bytes(cls, data: bytes) -> Self:
         return cls(version=data)
+
+    def bytes(self) -> bytes:
+        return self.version
 
 
 class KeyShare(BaseModel):
@@ -80,6 +94,16 @@ class KeyShare(BaseModel):
             filter(lambda x: x.group == x25519_group, self.entries)
         ).key_exchange
 
+    def bytes(self) -> bytes:
+        entry_buffers = map(lambda x: x.bytes(), self.entries)
+        all_entries = b"".join(entry_buffers)
+        return all_entries
+
+    def _bytes(self) -> bytes:
+        entry_buffers = map(lambda x: x.bytes(), self.entries)
+        all_entries = b"".join(entry_buffers)
+        return len(all_entries).to_bytes(2, "big") + all_entries
+
 
 class KeyShareEntry(BaseModel):
     group: bytes
@@ -96,3 +120,8 @@ class KeyShareEntry(BaseModel):
         # 次のlengthバイトがkeyExchange
         key_exchange = data[4 : 4 + length]
         return cls(group=group, length=length, key_exchange=key_exchange)
+
+    def bytes(self) -> bytes:
+        return (
+            self.group + len(self.key_exchange).to_bytes(2, "big") + self.key_exchange
+        )

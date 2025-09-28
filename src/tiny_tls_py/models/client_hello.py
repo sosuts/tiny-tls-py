@@ -93,3 +93,6 @@ class ClientHello(BaseModel):
             offset += 4 + length
             extensions.append(extension)
         return extensions
+
+    def bytes(self) -> bytes:
+        return self._original_data
